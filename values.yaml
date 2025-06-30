@@ -1,0 +1,107 @@
+serviceAccount:
+  create: true
+  annotations: {} # Additional annotations can be specified
+  name: "aembit"
+
+tenant: null # This value is required and the Helm Chart will fail if not provided
+stack: useast2.aembit.io
+
+# Agent Controller container configuration values
+agentController:
+  enabled: true
+  image: aembit/aembit_agent_controller:1.23.2263
+  pullPolicy: IfNotPresent
+  # Device code for Headless Registration
+  deviceCode: null
+  # ID for Attestation based Registration
+  id: null
+  # Resource request/limit options
+  cpuRequest: "250m"
+  cpuLimit: "500m"
+  memRequest: "100Mi"
+  memLimit: "250Mi"
+  # Probe configuration options
+  livenessProbe:
+    failureThreshold: 3
+    periodSeconds: 5
+    timeoutSeconds: 2
+    initialDelaySeconds: 5
+  readinessProbe:
+    failureThreshold: 3
+    periodSeconds: 5
+    timeoutSeconds: 2
+    initialDelaySeconds: 5
+  # TLS Configuration for HTTPS
+  tls:
+    secretName: null
+  metrics:
+    enabled: true
+  httpPort:
+    disabled: false
+  # Additional environment variables can be specified in the format:
+  # env:
+  #   key: value
+
+# Agent Injector container configuration values
+agentInjector:
+  enabled: true
+  image: aembit/aembit_agent_injector:1.23.295
+  pullPolicy: IfNotPresent
+  # Resource request/limit options
+  cpuRequest: "250m"
+  cpuLimit: "500m"
+  memRequest: "50Mi"
+  memLimit: "100Mi"
+  # Mutating Webhook Failure Policy
+  failurePolicy: Ignore
+  # Mutating Webhook Timeout Configuration
+  timeoutSeconds: 10
+  host: "::0" # Use ::0 to support both IPv4 and IPv6
+  port: 9443
+  filters:
+    namespaces: null # Default to all namespaces
+  certificate:
+    create: true
+    commonName: "aembit-agent-injector.{{ .Release.Namespace }}.svc"
+    validDays: 365 # Upgrading the chart will replace the certificate and webhook configuration
+  metrics:
+    enabled: true
+  # Additional environment variables can be specified in the format:
+  # env:
+  #   key: value
+
+# Agent Proxy Init container configuration values
+agentInit:
+  image: aembit/aembit_sidecar_init:1.18.92
+  pullPolicy: IfNotPresent
+
+# Agent Proxy container configuration values
+agentProxy:
+  nativeSidecar: false
+  agentController: null # Defaults to using the installed agent controller
+  image: aembit/aembit_agent_proxy:1.23.3002
+  pullPolicy: IfNotPresent
+  # Resource request/limit options
+  cpuRequest: "250m"
+  cpuLimit: "500m"
+  memRequest: "100Mi"
+  memLimit: "250Mi"
+  metrics:
+    enabled: true
+  # The following value can be set to true to enforce compliance with OpenShift's restricted-v2 SCC
+  runAsRestricted: true
+  # The following value adds a volumeMount so you can provide a custom TLS trust bundle for the proxy without giving it privileged filesystem permissions
+  volumeMount: 
+    name: ca-bundle
+    mountPath: /opt/ca
+    readOnly: true
+  # The following value can be used to pass in CA certificates that should be trusted by the Aembit Agent Proxy.
+  trustedCertificates:
+  # Additional environment variables can be specified in the format:
+  env:
+    SSL_CERT_FILE: /opt/ca/combined-bundle.crt
+  
+  #
+  # For Wiz Integration API, be sure to include your Kubernetes Provider ID (e.g. AWS EKS ARN)
+  # env:
+  #   KUBERNETES_PROVIDER_ID: arn:aws:eks:...
