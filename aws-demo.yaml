@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aws-demo
+  namespace: aembit-poc
+  annotations:
+    aembit.io/steering-mode: "explicit"
+    aembit.io/agent-inject: "enabled"
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: awscli
+      image: amazon/aws-cli:latest
+      command: ["/bin/sh"]
+      tty: true
+      stdin: true
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+      env:
+        - name: AWS_REGION
+          value: us-east-2
+        - name: HTTP_PROXY
+          value: http://localhost:8000
+        - name: HTTPS_PROXY
+          value: http://localhost:8000
+        - name: NO_PROXY
+          value: 169.254.169.254,localhost,127.0.0.1
+        - name: SSL_CERT_FILE
+          value: /opt/ca/combined-bundle.crt
+        - name: REQUESTS_CA_BUNDLE
+          value: /opt/ca/combined-bundle.crt
+      volumeMounts: 
+        - name: ca-bundle
+          mountPath: /opt/ca
+          readOnly: true
+  volumes:
+    - name: ca-bundle
+      configMap:
+        name: aembit-ca-bundle
+        defaultMode: 0444
+  restartPolicy: Never
