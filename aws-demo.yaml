@@ -9,8 +9,6 @@ metadata:
 spec:
   securityContext:
     runAsNonRoot: true
-    seccompProfile:
-      type: RuntimeDefault
   containers:
     - name: awscli
       image: amazon/aws-cli:latest
@@ -36,7 +34,11 @@ spec:
           value: /opt/ca/combined-bundle.crt
         - name: REQUESTS_CA_BUNDLE
           value: /opt/ca/combined-bundle.crt
-      volumeMounts: 
+        - name: AWS_ACCESS_KEY_ID
+          value: invalid
+        - name: AWS_SECRET_ACCESS_KEY
+          value: invalid
+      volumeMounts:
         - name: ca-bundle
           mountPath: /opt/ca
           readOnly: true
